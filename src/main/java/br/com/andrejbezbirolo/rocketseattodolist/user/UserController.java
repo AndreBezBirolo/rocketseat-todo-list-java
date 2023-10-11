@@ -25,6 +25,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Usuário já existe.");
         } else {
+            this.userRepository.save(userModel);
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(userModel);
         }
