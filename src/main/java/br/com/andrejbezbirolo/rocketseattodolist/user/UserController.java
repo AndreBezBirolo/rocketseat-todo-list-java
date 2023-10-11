@@ -1,5 +1,6 @@
 package br.com.andrejbezbirolo.rocketseattodolist.user;
 
+import at.favre.lib.crypto.bcrypt.BCrypt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,12 +18,14 @@ public class UserController {
 
     @PostMapping("/")
     public ResponseEntity create(@RequestBody UserModel userModel) {
+        var passwordEncrypted = BCrypt.withDefaults().hashToString(12, userModel.getPassword().toCharArray());
+        userModel.setPassword(passwordEncrypted);
         var alreadyHasUser = this.userRepository.findByUsername(userModel.getUsername());
         if (alreadyHasUser != null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("Usuário já existe.");
         } else {
-            return ResponseEntity.status(HttpStatus.OK)
+            return ResponseEntity.status(HttpStatus.CREATED)
                     .body(userModel);
         }
     }
