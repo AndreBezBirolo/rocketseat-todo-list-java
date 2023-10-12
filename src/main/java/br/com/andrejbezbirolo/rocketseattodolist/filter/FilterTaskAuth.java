@@ -22,29 +22,37 @@ public class FilterTaskAuth extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        var auth = request.getHeader("Authorization");
-        var authEncoded = auth.substring("Basic".length()).trim();
+        var servletPath = request.getServletPath();
 
-        byte[] authDecode = Base64.getDecoder().decode(authEncoded);
-
-        var authString = new String(authDecode);
-
-        String[] credentials = authString.split(":");
-        var username = credentials[0];
-        var password = credentials[1];
-
-        var user = this.userRepository.findByUsername(username);
-
-        if (user == null) {
-            response.sendError(HttpStatus.UNAUTHORIZED.value(), "Sem autorização.");
+        if (!servletPath.startsWith("/tasks/")) {
+            filterChain.doFilter(request, response);
         } else {
-            var verified = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
-            if (!verified.verified) {
+
+            var auth = request.getHeader("Authorization");
+            var authEncoded = auth.substring("Basic".length()).trim();
+            byte[] authDecode = Base64.getDecoder().decode(authEncoded);
+
+            var authString = new String(authDecode);
+
+
+            String[] credentials = authString.split(":");
+            var username = credentials[0];
+            var password = credentials[1];
+
+            var user = this.userRepository.findByUsername(username);
+            if (user == null) {
                 response.sendError(HttpStatus.UNAUTHORIZED.value(), "Sem autorização.");
             } else {
-                filterChain.doFilter(request, response);
+                var verified = BCrypt.verifyer().verify(password.toCharArray(), user.getPassword());
+                if (!verified.verified) {
+                    response.sendError(HttpStatus.UNAUTHORIZED.value(), "Sem autorização.");
+                } else {
+                    request.setAttribute("idUser", user.getId());
+                    filterChain.doFilter(request, response);
+                }
             }
         }
+
 
     }
 }
