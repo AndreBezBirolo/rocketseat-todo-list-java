@@ -31,6 +31,7 @@ public class TaskController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("A data de início deve ser anterior a data de término.");
         }
+
         var task = this.taskRepository.save(taskModel);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(task);
@@ -42,10 +43,20 @@ public class TaskController {
     }
 
     @PutMapping("/{taskId}")
-    public TaskModel update(@RequestBody TaskModel taskModel, @PathVariable UUID taskId, HttpServletRequest request) {
+    public ResponseEntity update(@RequestBody TaskModel taskModel, @PathVariable UUID taskId, HttpServletRequest request) {
         var task = this.taskRepository.findById(taskId).orElse(null);
+        if (task == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Tarefa não encontrada");
+        }
+
+        if (!task.getIdUser().equals(request.getAttribute("idUser"))) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("O usuário não é dono dessa tarefa.");
+        }
         Utils.copyNonNullProperties(taskModel, task);
-        assert task != null;
-        return this.taskRepository.save(task);
+        var taskUpdated = this.taskRepository.save(task);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(taskUpdated);
     }
 }
